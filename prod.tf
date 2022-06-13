@@ -49,32 +49,6 @@ resource "aws_security_group" "prod_web" {
 
 }
 
-resource "aws_instance" "prod_web" {
-  count         = 2
-
-  ami           = "ami-0dcbf34e757d2a931"
-  instance_type = "t2.nano"
-
-  vpc_security_group_ids = [
-    aws_security_group.prod_web.id
-  ]
-
-  tags = {
-    "Terraform" : "true"
-  }
-}
-
-resource "aws_eip_association" "prod_web" {
-  instance_id   = aws_instance.prod_web[0].id
-  allocation_id = aws_eip.prod_web.id
-}
-
-resource "aws_eip" "prod_web" {
-  tags = {
-    "Terraform" : "true"
-  }
-}
-
 resource "aws_default_subnet" "default_az1" {
   availability_zone = "us-east-1a"
 
@@ -91,10 +65,9 @@ resource "aws_default_subnet" "default_az2" {
   }
 }
 
-resource "aws_elb" "lb_prod_web" {
-  name               = "prob-web"
+resource "aws_elb" "prodweb" {
+  name = "elb-prod-web"
   availability_zones = ["us-east-1a", "us-east-1b"]
-  instances = aws_instance.prod_web[*].id
 
   listener {
     instance_port     = 80
@@ -102,4 +75,28 @@ resource "aws_elb" "lb_prod_web" {
     lb_port           = 80
     lb_protocol       = "http"
   }
+}
+
+resource "aws_launch_template" "asg_launch_prod_web" {
+  name_prefix   = "asg_launch_prod_web"
+  image_id      = "ami-0dcbf34e757d2a931"
+  instance_type = "t2.nano"
+  vpc_security_group_ids = [aws_security_group.prod_web.id]
+}
+
+resource "aws_autoscaling_group" "asg_prod_web" {
+  availability_zones = ["us-east-1a"]
+  desired_capacity   = 2
+  max_size           = 2
+  min_size           = 2
+
+  launch_template {
+    id      = aws_launch_template.asg_launch_prod_web.id
+    version = "$Latest"
+  }
+}
+
+resource "aws_autoscaling_attachment" "asg_attachment_prod_web" {
+  autoscaling_group_name = aws_autoscaling_group.asg_prod_web.id
+  elb                    = aws_elb.prodweb.id
 }
