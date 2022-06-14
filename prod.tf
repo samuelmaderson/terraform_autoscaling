@@ -1,3 +1,11 @@
+/*********** Start variables ***********/
+
+
+
+/************ End variables ************/
+
+
+
 provider "aws" {
   profile = "default"
   region  = "us-east-1"
@@ -22,25 +30,21 @@ resource "aws_security_group" "prod_web" {
     from_port   = 80
     to_port     = 80
     protocol    = "tcp"
-    cidr_blocks = [
-      "0.0.0.0/0"
-    ]
+    cidr_blocks = var.whitelist_range
   }
 
   ingress {
     from_port   = 443
     to_port     = 443
     protocol    = "tcp"
-    cidr_blocks = [
-      "0.0.0.0/0"
-    ]
+    cidr_blocks = var.whitelist_range
   }
 
   egress {
     from_port   = 0
     to_port     = 0
     protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
+    cidr_blocks = var.whitelist_range
   }
 
   tags = {
@@ -79,16 +83,16 @@ resource "aws_elb" "prodweb" {
 
 resource "aws_launch_template" "asg_launch_prod_web" {
   name_prefix   = "asg_launch_prod_web"
-  image_id      = "ami-0dcbf34e757d2a931"
-  instance_type = "t2.nano"
+  image_id      = var.web_ami
+  instance_type = var.web_type
   vpc_security_group_ids = [aws_security_group.prod_web.id]
 }
 
 resource "aws_autoscaling_group" "asg_prod_web" {
   availability_zones = ["us-east-1a"]
-  desired_capacity   = 2
-  max_size           = 2
-  min_size           = 2
+  desired_capacity   = var.web_desired
+  max_size           = var.web_max
+  min_size           = var.web_min
 
   launch_template {
     id      = aws_launch_template.asg_launch_prod_web.id
