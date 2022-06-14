@@ -1,10 +1,3 @@
-/*********** Start variables ***********/
-
-
-
-/************ End variables ************/
-
-
 
 provider "aws" {
   profile = "default"
