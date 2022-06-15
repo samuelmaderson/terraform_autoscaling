@@ -1,6 +1,5 @@
 variable "web_ami" {
   type    = string
-  default = "ami-0dcbf34e757d2a931"
 }
 
 variable "web_min" {
